@@ -26,6 +26,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import android.content.Context;
 import android.widget.Toast;
 
+import org.w3c.dom.Comment;
+import org.w3c.dom.Text;
+
 import java.io.IOException;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
@@ -34,7 +37,6 @@ import static android.content.ContentValues.TAG;
 public class MainActivity extends AppCompatActivity {
 
     private TextView mTextMessage;
-
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
 
@@ -54,19 +56,20 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     };
-    Button buton1;
-    TextView enlem, boylam;
-    private FusedLocationProviderClient client;
 
+    Button buton1;
+    //private FusedLocationProviderClient client;
+
+    private void requestPermission(){ // konumu kullanabilmek için izin alır.
+        ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, 1);
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        FirebaseDatabase db =  FirebaseDatabase.getInstance();
-        DatabaseReference ref = db.getReference("Kullanici");
-        ref.child("ahmet").child("Ad").setValue("Ahmet");
-        ref.child("ahmet").child("Soyad").setValue("Tuztaşı");
+        final FirebaseDatabase db =  FirebaseDatabase.getInstance();
+        final DatabaseReference ref = db.getReference().child("Gps");
 
         mTextMessage =  findViewById(R.id.message);
         BottomNavigationView navigation =  findViewById(R.id.navigation);
@@ -75,57 +78,48 @@ public class MainActivity extends AppCompatActivity {
         //*****************
         buton1 = findViewById(R.id.button);
 
-        enlem =  findViewById(R.id.textView4);
-        enlem.setText("ahmet");
+        final TextView enlem =  findViewById(R.id.textView4);
+        final TextView boylam = (TextView) findViewById(R.id.textView5);
 
-        boylam = (TextView) findViewById(R.id.textView5);
-        boylam.setText("tuztasi");
-
-        //client = LocationServices.getFusedLocationProviderClient(this);
-        requestPermission();
-
-        buton1.setOnClickListener(new View.OnClickListener() {
+        Button konumCek = (Button) findViewById(R.id.konumCek);
+        konumCek.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-
-                LocationManager mLocManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-                LocationListener mLocListener = new MyLocationListener();
+            public void onClick(View v) {
+                requestPermission();
                 if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    mLocManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocListener);
+                    LocationManager mLocManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+                    final MyLocationListener locListener = new MyLocationListener();
+                    mLocManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locListener);
                 }
-
-
-                /*if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-                client.getLastLocation().addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if(location != null){
-                            enlem.setText(location.toString());
-                            boylam.setText("location isn't null");
-                        }
-                    }
-                });*/
             }
         });
 
 
-        //******************
-    }
-    private void requestPermission(){
-        ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, 1);
-    }
+        buton1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                EditText sehirCek = (EditText) findViewById(R.id.sehirTxt);
+                final String sehir = sehirCek.getText().toString();
+                ref.child(sehir).child("Longitude").setValue(boylam.getText());
+                ref.child(sehir).child("Latitude").setValue(enlem.getText());
+            }
 
+        });
+    }
 
     class MyLocationListener implements LocationListener{
 
+        @Override
         public void onLocationChanged(Location loc) {
-            String message = String.format(
-                    "New Location \n Longitude: %1$s \n Latitude: %2$s",
-                    loc.getLongitude(), loc.getLatitude()
-            );
-            enlem.setText(message);
+
+            String tempEnlem,tempBoylam;
+            tempEnlem = Double.toString(loc.getLatitude());
+            tempBoylam = Double.toString(loc.getLongitude());
+
+            TextView enlem =  MainActivity.this.findViewById(R.id.textView4);
+            TextView boylam = (TextView) MainActivity.this.findViewById(R.id.textView5);
+            enlem.setText(tempEnlem); //veri tabanından aldığı latitude'u ekrana yazdırır
+            boylam.setText(tempBoylam); //veri tabanından aldığı longitude'u ekrana yazdırır
         }
         public void onProviderDisabled(String arg0) {
 
@@ -139,4 +133,3 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 
-/*----------Listener class to get coordinates ------------- */
